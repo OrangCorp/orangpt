@@ -1,6 +1,6 @@
 """Formality classification logic."""
 
-from utils.text_utils import contains_any, normalize_text
+from utils.text_utils import normalize_text
 
 FORMAL_HINTS = ("please", "thank you", "regards", "sincerely")
 INFORMAL_HINTS = ("hey", "lol", "gonna", "wanna", "bro", "omg")
@@ -15,8 +15,8 @@ def classify_tone(text: str) -> str:
     if not normalized:
         return "unknown"
 
-    formal_score = int(contains_any(normalized, FORMAL_HINTS))
-    informal_score = int(contains_any(normalized, INFORMAL_HINTS))
+    formal_score = sum(int(keyword in normalized) for keyword in FORMAL_HINTS)
+    informal_score = sum(int(keyword in normalized) for keyword in INFORMAL_HINTS)
     formal_score += int(normalized.endswith("."))
     informal_score += int("!" in normalized)
 
