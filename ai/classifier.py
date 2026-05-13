@@ -9,7 +9,7 @@ INFORMAL_HINTS = ("hey", "lol", "gonna", "wanna", "bro", "omg")
 def classify_tone(text: str) -> str:
     """Classify text as formal, informal, or unknown.
 
-    Returns ``unknown`` when no hints are found or when formal/informal hints are tied.
+    Returns unknown when no hints are found or when formal/informal hints are tied.
     """
     normalized = normalize_text(text)
     if not normalized:

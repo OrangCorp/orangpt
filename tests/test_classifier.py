@@ -16,6 +16,9 @@ class ClassifierTests(unittest.TestCase):
     def test_returns_unknown_when_no_formality_hints(self) -> None:
         self.assertEqual(classify_tone("This sentence has neutral wording"), "unknown")
 
+    def test_returns_unknown_when_formality_signals_are_tied(self) -> None:
+        self.assertEqual(classify_tone("please hey!."), "unknown")
+
 
 if __name__ == "__main__":
     unittest.main()
