@@ -4,7 +4,7 @@ from ai.classifier import classify_tone
 
 
 class ClassifierTests(unittest.TestCase):
-    def test_returns_unknown_for_empty_text(self) -> None:
+    def test_empty_text_returns_unknown(self) -> None:
         self.assertEqual(classify_tone("   "), "unknown")
 
     def test_formal_detection(self) -> None:

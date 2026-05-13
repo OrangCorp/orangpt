@@ -1,7 +1,7 @@
 """Streamlit UI for OranGPT."""
 
-from pathlib import Path
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 import streamlit as st
