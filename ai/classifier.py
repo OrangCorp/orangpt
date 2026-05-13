@@ -17,4 +17,6 @@ def classify_tone(text: str) -> str:
     formal_score += int(normalized.endswith("."))
     informal_score += int("!" in normalized)
 
-    return "formal" if formal_score >= informal_score else "informal"
+    if formal_score == informal_score:
+        return "unknown"
+    return "formal" if formal_score > informal_score else "informal"
