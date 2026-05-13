@@ -28,3 +28,8 @@ orangpt/
 - **Developer 3 (Platform/Quality):** `utils/`, `tests/`, `.env`, and dependency/config hygiene (`requirements.txt`).
 
 This split keeps ownership clear and reduces merge conflicts across independent areas.
+
+## How to run
+```bash
+streamlit run app.py
+```
