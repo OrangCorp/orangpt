@@ -18,6 +18,20 @@ W dobie dynamicznego rozwoju sztucznej inteligencji automatyczna ocena formalno�
 
 Realizacja tego zadania w ujęciu dwujęzycznym – dla języka polskiego oraz angielskiego – wiąże się ze zróżnicowanymi wyzwaniami lingwistycznymi. Język angielski opiera swoją formalność głównie na doborze specyficznego słownictwa (np. słów pochodzenia łacińskiego zamiast czasowników frazowych) oraz sztywnej strukturze składniowej. Z kolei język polski cechuje się bogatą fleksją, wolnym szykiem zdania oraz naturalną tendencją do pomijania zaimków osobowych, gdyż informacja o osobie jest zakodowana w końcówkach czasowników. Uwzględnienie obu tych języków wymaga od stosowanych algorytmów nie tylko prostej detekcji słów kluczowych, ale przede wszystkim zdolności do głębokiej interpretacji kontekstu semantycznego i różnic typologicznych między nimi.
 ## **3. Cel projektu oraz kontekst**
+### Cel projektu
+Głównym celem niniejszego projektu jest zaprojektowanie, implementacja oraz ewaluacja systemu do automatycznej klasyfikacji i oceny stopnia formalności tekstów w ujęciu dwujęzycznym: dla języka polskiego oraz angielskiego. Projekt ma na celu zbadanie, w jakim stopniu zróżnicowane metody przetwarzania języka naturalnego (NLP) radzą sobie z odmiennymi strukturami gramatycznymi i sposobami wyrażania rejestru oficjalnego w obu tych językach.
+
+W ramach realizacji celu głównego postawiono następujące zadania szczegółowe:
+
+* **Przygotowanie i analiza danych:** Pozyskanie oraz odpowiednie przetworzenie zbalansowanych korpusów tekstowych zawierających próbki o zróżnicowanym stopniu formalności (formalne, nieformalne, neutralne) dla obu języków.
+
+* **Ekstrakcja cech i implementacja modeli:** Porównanie skuteczności klasycznych metod lingwistycznych (takich jak wskaźnik F-score oparty na proporcjach części mowy) oraz tradycyjnych algorytmów uczenia maszynowego z nowoczesnymi podejściami opartymi na architekturze Transformer.
+
+* **Analiza porównawcza:** Zbadanie różnic w efektywności i barierach klasyfikacji dla analitycznego języka angielskiego oraz syntetycznego, bogatego fleksyjnie języka polskiego.
+
+### Kontekst projektu
+Projekt wpisuje się w intensywnie rozwijany nurt badań nad kontrolą stylu i atrybutów tekstu w systemach sztucznej inteligencji. Praktycznym kontekstem pracy jest rosnące zapotrzebowanie na narzędzia automatyzujące weryfikację korespondencji biznesowej, wspomagające redakcję tekstów (style-checking) oraz umożliwiające dostosowanie tonu wypowiedzi systemów konwersacyjnych (chatbotów i asystentów AI) do profilu odbiorcy. Badanie realizowane w środowisku dwujęzycznym pozwala na ocenę uniwersalności wybranych architektur modeli i sprawdzenie, czy narzędzia rozwijane pierwotnie dla języka angielskiego zachowują swoją skuteczność po adaptacji do specyfiki polszczyzny.
+
 ## **4. Literatura**
 ### **[FAME-MT Dataset: Formality Awareness Made Easy for Machine Translation Purposes](https://arxiv.org/html/2405.11942v1?fbclid=IwY2xjawR-YndleHRuA2FlbQIxMABicmlkETBhbHJTa2V4ZlNKNG83aVdyc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHiD_lb22AAl6b43zXcVXM4DI5leN8F5xPIoGXigKJ04UkuszThutfxM23Zzz_aem_zN-smMkoeIQrJZ9pQkUuYg)**
 ***D. Wiśniewski, Z. Rostek, A. Nowakowski***
