@@ -12,6 +12,11 @@
 9. [Wnioski](#9-wnioski)
 ## **1. Streszczenie**
 ## **2. Wprowadzenie**
+Skuteczna komunikacja wymaga od nas ciągłego dostosowywania rejestru językowego do sytuacji społecznej. Styl formalny (urzędowy, biznesowy czy akademicki) cechuje się dążeniem do całkowitej niezależności od kontekstu. Jest konstruowany tak, aby był precyzyjny i zrozumiały dla każdego odbiorcy, co w strukturze gramatycznej objawia się dominacją rzeczowników oraz przymiotników. Z kolei styl nieformalny (potoczny) bazuje na współdzielonej wiedzy rozmówców, skrótach myślowych, zaimkach i czasownikach.
+
+W dobie dynamicznego rozwoju sztucznej inteligencji automatyczna ocena formalności tekstu stała się kluczowym, a zarazem bardzo praktycznym wyzwaniem w obszarze przetwarzania języka naturalnego (NLP). Umiejętność ta jest niezbędna do optymalizacji pracy zaawansowanych chatbotów, automatycznych systemów moderacji treści oraz nowoczesnych narzędzi tłumaczenia maszynowego, które muszą zachować odpowiedni ton wypowiedzi. Algorytmiczne podejście do tego problemu ewoluowało na przestrzeni lat – od prostych statystyk gramatycznych, przez klasyczne uczenie maszynowe (takie jak maszyny wektorów nośnych – SVM), aż po współczesne głębokie modele transformerowe.
+
+Realizacja tego zadania w ujęciu dwujęzycznym – dla języka polskiego oraz angielskiego – wiąże się ze zróżnicowanymi wyzwaniami lingwistycznymi. Język angielski opiera swoją formalność głównie na doborze specyficznego słownictwa (np. słów pochodzenia łacińskiego zamiast czasowników frazowych) oraz sztywnej strukturze składniowej. Z kolei język polski cechuje się bogatą fleksją, wolnym szykiem zdania oraz naturalną tendencją do pomijania zaimków osobowych, gdyż informacja o osobie jest zakodowana w końcówkach czasowników. Uwzględnienie obu tych języków wymaga od stosowanych algorytmów nie tylko prostej detekcji słów kluczowych, ale przede wszystkim zdolności do głębokiej interpretacji kontekstu semantycznego i różnic typologicznych między nimi.
 ## **3. Cel projektu oraz kontekst**
 ## **4. Literatura**
 ### **[FAME-MT Dataset: Formality Awareness Made Easy for Machine Translation Purposes](https://arxiv.org/html/2405.11942v1?fbclid=IwY2xjawR-YndleHRuA2FlbQIxMABicmlkETBhbHJTa2V4ZlNKNG83aVdyc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHiD_lb22AAl6b43zXcVXM4DI5leN8F5xPIoGXigKJ04UkuszThutfxM23Zzz_aem_zN-smMkoeIQrJZ9pQkUuYg)**
