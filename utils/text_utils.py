@@ -1,5 +1,6 @@
 """Text helper utilities."""
 import re
+from ai.classifier import get_highlighted_words
 
 def normalize_text(text: str) -> str:
     """Normalize user input for consistent rule checks."""
@@ -13,15 +14,24 @@ def highlight_words(text: str, language: str, model_type: str) -> str:
     """
     Analyzes text and returns an HTML string with formal and informal words highlighted.
     """
+    words_list = get_highlighted_words(text, language, model_type)
     formal_words = {
-        "English": ["therefore", "furthermore", "sincerely", "regarding", "ensure", "please", "thank you", "regards"],
-        "Polish": ["zatem", "ponadto", "poważnie", "dotyczy", "poważam"]
+        "English": [],
+        "Polish": []
     }
     
     informal_words = {
-        "English": ["dude", "bro", "gonna", "wanna", "hey", "cool", "yeah", "omg", "lol"],
-        "Polish": ["elo", "ziomek", "spoko", "nara", "fajnie", "no"]
+        "English": [],
+        "Polish": []
     }
+    print(words_list)
+    for word in words_list:
+        if float(word[1])>0:
+            formal_words[language].append(str(word[0]))
+        elif float(word[1])<0:
+            informal_words[language].append(str(word[0]))
+
+    print(formal_words)
 
     formal_style = "background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 4px; font-weight: bold;"
     informal_style = "background-color: #f8d7da; color: #721c24; padding: 2px 6px; border-radius: 4px; font-weight: bold;"

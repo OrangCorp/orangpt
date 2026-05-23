@@ -1,0 +1,14 @@
+Best parameters: {'classifier__Logistic Regression__C': 10.0, 'classifier__Multinomial Naive Bayes__alpha': 1.0, 'classifier__Stochastic Gradient Descent__alpha': 1e-05, 'vectorizer__max_df': 0.9, 'vectorizer__ngram_range': (1, 2)}Model saved: ai/models/Standard_Classifier_English.pkl
+Accuracy: 0.7893
+Training samples: 140000
+Features: 836710
+Random State: 2217827989
+Classification Report:
+              precision    recall  f1-score   support
+
+          -1       0.81      0.76      0.78     30000
+           1       0.77      0.82      0.80     30000
+
+    accuracy                           0.79     60000
+   macro avg       0.79      0.79      0.79     60000
+weighted avg       0.79      0.79      0.79     60000

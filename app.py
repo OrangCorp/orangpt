@@ -79,7 +79,7 @@ def main() -> None:
         else:
             with st.spinner(f"Analyzing tone using {selected_model}..."):
                 # Pass only text to match classifier.py's current strict signature
-                tone = classify_tone(text)
+                tone, confidence = classify_tone(text, selected_language, selected_model)   
                 
                 # HTML formatter still takes language/model to swap out vocabularies 
                 highlighted_html = highlight_words(text, selected_language, selected_model)
