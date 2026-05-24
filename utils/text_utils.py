@@ -24,14 +24,11 @@ def highlight_words(text: str, language: str, model_type: str) -> str:
         "English": [],
         "Polish": []
     }
-    print(words_list)
     for word in words_list:
         if float(word[1])>0:
             formal_words[language].append(str(word[0]))
         elif float(word[1])<0:
             informal_words[language].append(str(word[0]))
-
-    print(formal_words)
 
     formal_style = "background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 4px; font-weight: bold;"
     informal_style = "background-color: #f8d7da; color: #721c24; padding: 2px 6px; border-radius: 4px; font-weight: bold;"
