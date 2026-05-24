@@ -134,24 +134,30 @@ def load_model(selected_language, selected_model):
             raise NotImplementedError
 
 
-def classify_tone(text: str, selected_language: str, selected_model: str) -> str:
+def classify_tone(text: str, selected_language: str, selected_model: str):
     clf = load_model(selected_language, selected_model)
     """Make predictions on new text"""
     if clf is NotImplemented:
         print("Error: Model not loaded")
-        return None
+        return 'unknown', 0.0, 0.5
     
-    # Transform the text using the SAME vectorizer
+    # 1. Get the hard prediction label (-1 or 1)
     prediction = clf.predict([text])[0]
     
-    # Get probability scores if you want confidence
+    # 2. Extract raw class probabilities 
+    # [prob_of_informal, prob_of_formal]
+    probs = clf.predict_proba([text])[0]
+    informal_prob = probs[0]
+    formal_prob = probs[1]  # This is the 3rd value your app.py is looking for!
     
-    confidence = max(clf.predict_proba([text])[0])
+    confidence = max(probs)
 
-    print(f'Prediction: {prediction}, Confidence: {confidence}')
-    if prediction == -1:
-        return 'informal', confidence
-    return 'formal', confidence
+    print(f'Prediction: {prediction}, Confidence: {confidence}, Formal Prob: {formal_prob}')
+    
+    tone = 'informal' if prediction == -1 else 'formal'
+    
+    # Return all 3 values to match app.py line 77
+    return tone, confidence, formal_prob
 
 def get_highlighted_words(text, selected_language, selected_model, fraction_of_words=0.33, min_number_of_words=1, max_number_of_words=10):
     clf = load_model(selected_language, selected_model)

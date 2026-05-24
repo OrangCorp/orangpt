@@ -12,46 +12,54 @@ def contains_any(text: str, keywords: tuple[str, ...]) -> bool:
 
 def highlight_words(text: str, language: str, model_type: str) -> str:
     """
-    Analyzes text and returns an HTML string with formal and informal words highlighted.
+    Analyzes text and returns an HTML string with formal and informal words 
+    highlighted using a precise gradient based on feature importance weights.
+    Neutral words are left completely unstyled.
     """
     words_list = get_highlighted_words(text, language, model_type)
-    formal_words = {
-        "English": [],
-        "Polish": []
-    }
-    
-    informal_words = {
-        "English": [],
-        "Polish": []
-    }
-    for word in words_list:
-        if float(word[1])>0:
-            formal_words[language].append(str(word[0]))
-        elif float(word[1])<0:
-            informal_words[language].append(str(word[0]))
+    if not words_list:
+        return text.replace("\n", "<br>")
 
-    formal_style = "background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 4px; font-weight: bold;"
-    informal_style = "background-color: #f8d7da; color: #721c24; padding: 2px 6px; border-radius: 4px; font-weight: bold;"
+    # Calculate absolute max score to normalize gradients relatively
+    max_score = max(abs(float(val)) for _, val in words_list) if words_list else 1.0
+    if max_score == 0:
+        max_score = 1.0
 
-    current_formal = formal_words.get(language, [])
-    current_informal = informal_words.get(language, [])
+    # Build local scoring lookup dictionary
+    word_scores = {str(word).lower(): float(val) for word, val in words_list}
 
-    words = re.findall(r'\b\w+\b|[^\w\s]', text, re.UNICODE)
+    # Split using capturing group to preserve all spacing, punctuation, and newlines exactly
+    tokens = re.split(r'(\s+|\b\w+\b)', text)
     highlighted_text = []
 
-    for word in words:
-        if re.match(r'[^\w\s]', word):
-            highlighted_text.append(word)
+    for token in tokens:
+        if not token:
             continue
-            
-        word_lower = word.lower()
-        if word_lower in current_formal:
-            highlighted_text.append(f'<span style="{formal_style}">{word}</span>')
-        elif word_lower in current_informal:
-            highlighted_text.append(f'<span style="{informal_style}">{word}</span>')
-        else:
-            highlighted_text.append(word)
+        
+        # Process alphanumeric words
+        if re.match(r'^\w+$', token):
+            token_lower = token.lower()
+            if token_lower in word_scores:
+                score = word_scores[token_lower]
+                
+                # Filter out true neutrals or microscopic values
+                if abs(score) > 0.001:
+                    # Scale opacity from 0.30 (subtle) up to 0.90 (high intensity)
+                    alpha = 0.30 + 0.60 * (abs(score) / max_score)
+                    
+                    if score > 0:
+                        # Formal: Teal/Cyan gradient highlights with white text
+                        style = f"background-color: rgba(0, 180, 216, {alpha:.2f}); color: #ffffff; padding: 2px 6px; border-radius: 4px; font-weight: bold; display: inline;"
+                        highlighted_text.append(f'<span style="{style}">{token}</span>')
+                        continue
+                    elif score < 0:
+                        # Informal: Vibrant Red/Coral gradient highlights with white text
+                        style = f"background-color: rgba(239, 35, 60, {alpha:.2f}); color: #ffffff; padding: 2px 6px; border-radius: 4px; font-weight: bold; display: inline;"
+                        highlighted_text.append(f'<span style="{style}">{token}</span>')
+                        continue
+                        
+        # Keep punctuation, spacing, newlines, and neutral words unmodified
+        escaped_token = token.replace("\n", "<br>")
+        highlighted_text.append(escaped_token)
 
-    html_output = " ".join(highlighted_text)
-    html_output = re.sub(r'\s+([.,!?])', r'\1', html_output)
-    return html_output
+    return "".join(highlighted_text)
