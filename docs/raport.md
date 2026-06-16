@@ -50,6 +50,135 @@ Praca przenosi klasyfikację stylu do świata uczenia maszynowego. Autorzy stwor
 
 ## **5. Opis danych**
 ## **6. Opis użytych metod**
+
+### 6.1. Frontend (GUI)
+Interfejs użytkownika zbudowany w oparciu o framework **Streamlit**, umożliwiający interaktywną analizę formalności tekstu:
+
+**Architektura interfejsu:**
+- Aplikacja jednostronicowa z podziałem na panel boczny (sidebar) i obszar główny
+- Konfiguracja za pomocą zmiennych środowiskowych (.env)
+- Responsywny układ z wykorzystaniem kolumn (columns)
+
+**Komponenty interaktywne:**
+- Selectboxy do wyboru języka (polski/angielski) i modelu AI
+- Pole tekstowe (text_area) do wprowadzania analizowanego tekstu
+- Przycisk inicjujący proces klasyfikacji z wizualizacją ładowania (spinner)
+
+**Wizualizacja wyników:**
+- Podział na dwie kolumny: ogólna ocena tonu i szczegółowa analiza
+- Indeks formalności w formie interaktywnego suwaka z gradientem kolorystycznym
+- Kategoryzacja tonu na 5 poziomów (od "Highly Informal" do "Highly Formal")
+- Podświetlanie słów z wykorzystaniem kolorów (niebieski → formalne, czerwony → nieformalne)
+- Legenda wyjaśniająca znaczenie kolorów i intensywność
+
+### 6.2. Klasyfikator standardowy
+Aplikacja wykorzystuje ensemble klasyfikatoror do oceny formalności tekstu:
+
+**Architektura modelu:**
+
+VotingClassifier łączący trzy algorytmy:
+  - Stochastic Gradient Descent (SGD) z funkcją straty logistycznej
+  - Regresję Logistyczną z solverem liblinear
+  - Naiwny klasyfikator Bayesa (MultinomialNB)
+
+Głosowanie miękkie (soft voting) – uśrednianie prawdopodobieństw z wszystkich klasyfikatorów
+
+**Przetwarzanie cech:**
+
+Wektoryzacja TF-IDF z optymalizacją parametrów:
+  - Maksymalna częstotliwość dokumentów (`max_df`)
+  - Zakres n-gramów (unigramy, bigramy, trigramy)
+
+**Optymalizacja hiperparametrów:**
+- GridSearchCV z 3-krotną walidacją krzyżową
+- Optymalizacja parametrów dla każdego klasyfikatora składowego
+- Kryterium optymalizacji: dokładność (accuracy)
+
+**Wyjaśnialność predykcji:**
+
+Do interpretacji wyników wykorzystano **LIME** (Local Interpretable Model-agnostic Explanations):
+- Generowanie lokalnych wyjaśnień dla pojedynczych predykcji
+- Identyfikacja słów mających największy wpływ na decyzję klasyfikatora
+- Określenie wagi każdego słowa (dodatnia dla formalnych, ujemna dla nieformalnych)
+
+### Mały Model Językowy (SLM)
+
 ## **7. Opis wdrożenia metod/modelu**
+### 7.1. Frontend (GUI)
+
+**Struktura plików:**
+```
+├── app.py                 # Główna aplikacja Streamlit
+├── utils/
+│   └── text_utils.py      # Funkcje pomocnicze
+└── assets/
+    └── logo.svg           # Zasoby graficzne
+```
+
+**Implementacja interfejsu (`app.py`):**
+
+1. **Konfiguracja strony:**
+   - Ustawienie tytułu, ikony i układu (wide)
+   - Wczytanie zmiennych środowiskowych (tytuł aplikacji, nazwa społeczności)
+   - Dodanie niestandardowego CSS dla poprawy wyglądu
+
+2. **Panel boczny (sidebar):**
+   - Nagłówek i opis konfiguracji
+   - Selectbox dla języka (English/Polish)
+   - Selectbox dla modelu (Standard Classifier/SLM)
+   - Wyświetlenie docelowej społeczności
+
+3. **Obszar główny:**
+   - Wyświetlenie logo i tytułu aplikacji
+   - Pole tekstowe z miejscem na wprowadzenie tekstu
+   - Przycisk "Classify Tone" z obsługą stanów ładowania
+
+4. **Prezentacja wyników:**
+   - Wywołanie funkcji `classify_tone()` z modułu `ai.classifier`
+   - Wygenerowanie podświetleń przez `highlight_words()` z `utils.text_utils`
+   - Wyświetlenie ogólnej oceny z emoji i etykietą
+   - Renderowanie suwaka z pozycją obliczoną na podstawie `formal_prob` (0-100%)
+   - Wyświetlenie indeksu formalności i poziomu ufności
+   - Prezentacja podświetlonego tekstu z legendą
+
+**Obsługa błędów:**
+- Walidacja pustego tekstu przed klasyfikacją
+- Komunikaty ostrzegawcze dla użytkownika
+- Wyświetlanie statusu ładowania podczas analizy
+
+**Personalizacja:**
+- Dostosowanie tytułu i nazwy społeczności przez plik .env
+- Możliwość rozszerzenia o dodatkowe języki i modele
+- Skalowalna architektuma umożliwiająca dodawanie nowych komponentów
+
+### 7.2. Klasyfikator standardowy
+
+**Trenowanie modelu (`create_classifier`):**
+1. Wczytanie danych z plików CSV (osobno dla formalnych i nieformalnych)
+2. Próbkowanie danych (do 100 000 przykładów na klasę, dalsze zwiększonie ilości danych nie poprawiało jakości modelu). Podział na zbiory treningowe (70%) i testowe (30%) z zachowaniem stratifikacji
+4. Konfiguracja potoku (Pipeline):
+   - Wektoryzacja TF-IDF
+   - Ensemble klasyfikatorów (VotingClassifier)
+5. Przeszukiwanie siatki hiperparametrów (GridSearchCV) z 3-krotną walidacją
+6. Ewaluacja na zbiorze testowym (dokładność, raport klasyfikacji)
+7. Zapis wytrenowanego modelu za pomocą `joblib`
+
+**Ładowanie i predykcja (`load_model`, `classify_tune`):**
+- Ładowanie zapisanego modelu z dysku (ścieżka: `ai/models/{model}_{język}.pkl`)
+- Automatyczne trenowanie w przypadku braku pliku modelu
+- Zwracanie: kategorii tonu, poziomu ufności i prawdopodobieństwa formalności
+
+**Wizualizacja podświetleń (`get_highlighted_words`):**
+1. Inicjalizacja explainera LIME z nazwami klas ["informal", "formal"]
+2. Wygenerowanie lokalnego wyjaśnienia dla wprowadzonego tekstu
+3. Ograniczenie liczby wyświetlanych słów (uwzględniając długość tekstu)
+4. Zwrócenie listy słów z przypisanymi wagami (dodatnie → formalne, ujemne → nieformalne)
+
+**Format zapisu modelu:**
+- Główny plik: `{model}_{język}.pkl` (zawiera cały potok Pipeline)
+- Plik metadanych: `{model}_{język}_info.txt` (parametry, dokładność, raport)
+
+### 7.3 Mały Model Językowy (SLM)
+
 ## **8. Wyniki**
 ## **9. Wnioski**
