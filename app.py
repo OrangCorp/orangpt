@@ -4,7 +4,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import streamlit as st
 
-from ai.classifier import classify_tone
+from ai.classifier import TextClassifier
+from ai.slmclass import FormalityScorer
 from utils.text_utils import highlight_words
 
 load_dotenv()
@@ -67,14 +68,14 @@ def main() -> None:
         placeholder="Type a sentence to classify...",
         height=150
     )
-
+    classifier =  TextClassifier() 
     if st.button("Classify Tone", type="primary", use_container_width=False):
         if not text.strip():
             st.warning("Please enter some text to classify.")
         else:
             with st.spinner(f"Analyzing tone using {selected_model}..."):
-                tone, confidence, formal_prob = classify_tone(text, selected_language, selected_model)   
-                highlighted_html = highlight_words(text, selected_language, selected_model)
+                tone, confidence, formal_prob = classifier.classify_tone(text, selected_language, selected_model)   
+                highlighted_html = highlight_words(text, selected_language, selected_model,classifier)
 
             st.markdown("### Analysis Results")
             res_col1, res_col2 = st.columns([1, 2], gap="large")
