@@ -103,7 +103,25 @@ Do interpretacji wyników wykorzystano **LIME** (Local Interpretable Model-agnos
 - Identyfikacja słów mających największy wpływ na decyzję klasyfikatora
 - Określenie wagi każdego słowa (dodatnia dla formalnych, ujemna dla nieformalnych)
 
-### Mały Model Językowy (SLM)
+### 6.3. Mały Model Językowy (SLM)
+
+**Architektura modelu:**
+- Wykorzystanie modelu **Qwen/Qwen2.5-1.5B-Instruct** – lekkiego modelu językowego z rodziny Qwen
+- Model typu Causal LM (generatywny) z 1.5 miliardami parametrów
+- Działanie w trybie instrukcji (Instruct) z dostosowanym system promptem
+
+**Metoda klasyfikacji:**
+- Klasyfikacja poprzez **promptowanie** modelu o ocenę formalności w skali 0.0–1.0
+- Wykorzystanie techniki **few-shot learning** z przykładami w promptcie:
+  - Przykład nieformalny: "hey wassup bro how u doin" → 0.1
+  - Przykład formalny: "I would like to formally request..." → 0.95
+  - Przykład neutralny: "The meeting is scheduled..." → 0.5
+- Model zwraca JSON z oceną formalności oraz listą ważnych słów
+
+**Ekstrakcja cech:**
+- Oprócz głównej oceny, model identyfikuje słowa kluczowe wpływające na decyzję
+- Każde słowo otrzymuje indywidualną ocenę formalności (0.0–1.0)
+- Oceny słów są normalizowane do zakresu [-1.0, 1.0] (ujemne → nieformalne, dodatnie → formalne)
 
 ## **7. Opis wdrożenia metod/modelu**
 ### 7.1. Frontend (GUI)
@@ -180,7 +198,58 @@ Do interpretacji wyników wykorzystano **LIME** (Local Interpretable Model-agnos
 - Główny plik: `{model}_{język}.pkl` (zawiera cały potok Pipeline)
 - Plik metadanych: `{model}_{język}_info.txt` (parametry, dokładność, raport)
 
-### 7.3 Mały Model Językowy (SLM)
+### 7.3. Mały Model Językowy (SLM)
+
+**Klasa `FormalityScorer` (`slmclass.py`):**
+
+1. **Inicjalizacja i ładowanie modelu:**
+   - Konfiguracja urządzenia (CUDA/CPU) z automatycznym wykryciem
+   - Ładowanie tokenizera z ustawieniem tokena paddingowego
+   - Ładowanie modelu z `device_map="auto"` i precyzją `float16` dla wydajności
+   - Ustawienie zmiennych środowiskowych dla Hugging Face Hub
+
+2. **Metoda `score_formality`:**
+   - Budowanie struktury wiadomości z system promptem i przykładami few-shot
+   - Generowanie promptu przez `apply_chat_template`
+   - Generowanie odpowiedzi z parametrami: `max_new_tokens=140`, `temperature=0.3`
+   - Parsowanie odpowiedzi JSON i ekstrakcja oceny oraz ważnych słów
+   - Mechanizm fallback w przypadku błędów parsowania
+
+3. **Metoda `prompt`:**
+   - Pętla próbująca do 5 razy uzyskać poprawną odpowiedź JSON
+   - Normalizacja ocen słów: `(word_score - 0.5) * 2` → zakres [-1.0, 1.0]
+   - Fallback do domyślnej odpowiedzi w przypadku ciągłych błędów
+
+4. **Kompatybilność ze Scikit-learn:**
+   - Implementacja metod `predict()` i `predict_proba()` dla zgodności z interfejsem
+   - `predict()`: zwraca 1 (formalny) jeśli formality > 0.5, inaczej -1
+   - `predict_proba()`: zwraca `[1-formality, formality]`
+
+5. **Serializacja (pickle):**
+   - Nadpisanie `__getstate__` do wykluczenia ciężkich obiektów modelu
+   - Model i tokenizer ustawiane na `None` przy zapisie
+   - Nadpisanie `__setstate__` do przywrócenia stanu z oznaczeniem "niezaładowany"
+   - Model ładowany automatycznie przy pierwszym użyciu (lazy loading)
+
+**Integracja z systemem klasyfikacji (`classifier.py`):**
+
+1. **Klasa `TextClassifier`:**
+   - Inicjalizacja z dwoma instancjami `FormalityScorer` (dla polskiego i angielskiego)
+   - Modele ładowane są z zapisanych plików pickle
+
+2. **Metoda `classify_tone`:**
+   - Rozróżnienie ścieżki dla SLM i klasyfikatora standardowego
+   - Wywołanie `clf.prompt([text])` do uzyskania oceny
+   - Użycie `predict()` i `predict_proba()` do uzyskania zgodnego formatu wyjścia
+
+3. **Metoda `get_highlighted_words`:**
+   - Dla SLM: zwraca `loaded_data['important_words']` z ostatniej predykcji
+   - Lista słów z ocenami w zakresie [-1.0, 1.0] gotowa do wizualizacji
+
+**Format zapisu modelu:**
+- Plik pickle: `Small_Language_Model_(SLM)_{język}.pkl`
+- Zapis zawiera konfigurację (nazwa modelu, urządzenie) bez wag modelu
+- Wagi ładowane przy pierwszym wywołaniu z Hugging Face Hub
 
 ## **8. Wyniki**
 Klasyfikator stanadrdowy: Angielski
