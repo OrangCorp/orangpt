@@ -49,7 +49,7 @@ class FormalityScorer:
         messages = [
     {
         "role": "system", 
-        "content": '''You are a formality scoring tool. Rate text from 0.0 (very casual) to 1.0 (very formal). Include important words that influenced your rating, and also rate them  from 0.0 (very casual) to 1.0 (very formal) . Reply ONLY with a JSON object, no other text.'''
+        "content": '''You are a formality scoring tool. Rate text from 0.0 (very casual) to 1.0 (very formal). Include up to 5 important words that influenced your rating, and also rate them  from 0.0 (very casual) to 1.0 (very formal) . Reply ONLY with a JSON object, no other text.'''
     },
     {
         "role": "user",
@@ -106,7 +106,7 @@ class FormalityScorer:
         with torch.no_grad():
             outputs = self.model.generate(
                 **inputs,
-                max_new_tokens=100,
+                max_new_tokens=140,
                 temperature=0.3,
                 do_sample=False,
                 pad_token_id=self.tokenizer.pad_token_id,
@@ -142,17 +142,34 @@ class FormalityScorer:
         
         return 0.5, []
     def prompt(self,text):
-      self.last_response=self.score_formality(text)
-      data = json.loads(self.last_response)
-      for word in data["important_words"]:
-        word[1]=(word[1]-0.5)*2
-      self.loaded_data= data
-      return self.last_response
+        got_valid_r=False
+        invalid_responses=0
+        while(not got_valid_r):
+            
+
+            self.last_response=self.score_formality(text)
+            #data = json.loads(self.last_response)
+            #word[1]=(word[1]-0.5)*2
+            try:   
+                data = json.loads(self.last_response)
+                test = data["important_words"]
+                for word in data["important_words"]:
+                    word[1]=(word[1]-0.5)*2
+
+                got_valid_r=True
+            except Exception:
+                invalid_responses+=1 
+            if(invalid_responses>=5):
+                data= json.loads('{"formality": 0.5, "important_words": [["encountered", -1.0], ["an", 0.0], ["error", 1.0]]}')
+                got_valid_r=True
+            
+        self.loaded_data= data
+        return self.last_response
 
     def predict(self,compatarg):
       if(self.loaded_data['formality']>0.5):
         return 1
-      return 0
+      return -1
     def predict_proba(self,compatarg):
         return [1-self.loaded_data['formality'],self.loaded_data['formality']]
 

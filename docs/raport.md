@@ -11,6 +11,7 @@
 8. [Wyniki](#8-wyniki)
 9. [Wnioski](#9-wnioski)
 ## **1. Streszczenie**
+W ramach projektu "Ocena stopnia formalnośći tekstu" porównano dwie metody: klasyczny klasyfikator wytrenowany własnoręcznie na znalezionych danych, oraz promptowany SLM Qwen2.5-1.5B-Instruct. Do szkolenia klasyfikatora i testowania go oraz slma użyty został zbiór 
 ## **2. Wprowadzenie**
 Skuteczna komunikacja wymaga od nas ciągłego dostosowywania rejestru językowego do sytuacji społecznej. Styl formalny (urzędowy, biznesowy czy akademicki) cechuje się dążeniem do całkowitej niezależności od kontekstu. Jest konstruowany tak, aby był precyzyjny i zrozumiały dla każdego odbiorcy, co w strukturze gramatycznej objawia się dominacją rzeczowników oraz przymiotników. Z kolei styl nieformalny (potoczny) bazuje na współdzielonej wiedzy rozmówców, skrótach myślowych, zaimkach i czasownikach.
 
@@ -49,6 +50,7 @@ Praca wyjaśnia, że formalność to unikanie niejasności poprzez tworzenie wyp
 Praca przenosi klasyfikację stylu do świata uczenia maszynowego. Autorzy stworzyli uniwersalny model, który rozpoznaje stopień formalności zarówno całych dokumentów, jak i pojedynczych zdań na podstawie cech gramatycznych i doboru słownictwa. Do treningu wykorzystano teksty ogólne oraz specjalistyczne (medyczne), co udowodniło, że algorytmy radzą sobie z różną tematyką. W eksperymentach przetestowano Drzewa Decyzyjne, Naiwnego Klasyfikatora Bayesa oraz Maszyny Wektorów Nośnych (SVM) – ten ostatni algorytm osiągnął najwyższą skuteczność.
 
 ## **5. Opis danych**
+Do trenowania standardowego klasyfikatora a następnie testowania go oraz małego modelu językowego użyto danych z zestawu danych FAME-MT, w którym kawałki tekstu w różnych językach (z których użyte zostały polski i angielski) są pogrupowane na teksty formalne i potoczne.
 ## **6. Opis użytych metod**
 
 ### 6.1. Frontend (GUI)
@@ -181,4 +183,68 @@ Do interpretacji wyników wykorzystano **LIME** (Local Interpretable Model-agnos
 ### 7.3 Mały Model Językowy (SLM)
 
 ## **8. Wyniki**
+Klasyfikator stanadrdowy: Angielski
+
+Best parameters: {'classifier__Logistic Regression__C': 10.0, 'classifier__Multinomial Naive Bayes__alpha': 1.0, 'classifier__Stochastic Gradient Descent__alpha': 1e-05, 'vectorizer__max_df': 0.9, 'vectorizer__ngram_range': (1, 2)}Model saved: ai/models/Standard_Classifier_English.pkl
+Accuracy: 0.7893
+Training samples: 140000
+Features: 836710
+Random State: 2217827989
+Classification Report:
+              precision    recall  f1-score   support
+
+          -1       0.81      0.76      0.78     30000
+           1       0.77      0.82      0.80     30000
+
+    accuracy                           0.79     60000
+   macro avg       0.79      0.79      0.79     60000
+weighted avg       0.79      0.79      0.79     60000
+
+
+Klasyfikator standardowy: Polski
+Best parameters: {'classifier__Logistic Regression__C': 1.0, 'classifier__Multinomial Naive Bayes__alpha': 1.0, 'classifier__Stochastic Gradient Descent__alpha': 1e-05, 'vectorizer__max_df': 0.8, 'vectorizer__ngram_range': (1, 1)}Model saved: ai/models/Standard_Classifier_Polish.pkl
+Accuracy: 0.7930
+Training samples: 140000
+Features: 131178
+Random State: 2225172574
+Classification Report:
+              precision    recall  f1-score   support
+
+          -1       0.78      0.81      0.80     30000
+           1       0.80      0.77      0.79     30000
+
+    accuracy                           0.79     60000
+   macro avg       0.79      0.79      0.79     60000
+weighted avg       0.79      0.79      0.79     60000
+
+slm: Angielski
+
+Accuracy: 0.6200
+Classification Report:
+              precision    recall  f1-score   support
+
+          -1       0.54      0.89      0.67        44
+           1       0.82      0.41      0.55        56
+
+    accuracy                           0.62       100
+   macro avg       0.68      0.65      0.61       100
+weighted avg       0.70      0.62      0.60       100
+
+slm: Polski
+Accuracy: 0.5000
+Classification Report:
+              precision    recall  f1-score   support
+
+          -1       0.51      0.85      0.64        52
+           1       0.43      0.12      0.19        48
+
+    accuracy                           0.50       100
+   macro avg       0.47      0.49      0.42       100
+weighted avg       0.47      0.50      0.42       100
+
 ## **9. Wnioski**
+SLM miał zazwyczaj gorsze wyniki, co nie jest szczególnie zaskakujące, zważywszy na jego ogólny charakter, zwłaszcza że ze względów sprzętowych użyty został relatywnie mały SLM. Powoodowało to więc problemy z konfiguracją i niezawodnym otrzymywaniem wyników w poprawnym formacie, a sam model potrafił przekręcać słowa (np dla  tekstu: "Podjąłem starania mające na celu gromadzenia środków na wsparcie tego niezwykłego przedsięwzięcia."
+Odpowiedź SLMa brzmiała:{"formality": 0.6, "important_words": [["podjęłem", 0.7], ["starania", 0.6], ["gromadzenia", 0.6], ["wsparcie", 0.6], ["niezwykłego", 0.5], ["przedsięwzięcia", 0.6]]},
+a więc słowo "Podjąłem" zostało przekręcone na (niepoprawne gramatycznie) "podjęłem".), albo zachowywać się ogólnie w sposób nieprzewidywalny (kiedy do komendy dodana została klauzula o wspomnieniu tylko o pięciu najważniejszych słowach (aby cała odpowiedź zmieściła się w limicie tokenów), slm wyróżnił w odpowiedzi dwa słowa, z czego drugie powtarzał w nieskończoność ).
+Za to klasyfikator klasyczny radził sobie zazwyczaj lepiej, lecz wymagał najpierw konkretnego treningu i w wypadku tekstów których dziedzina/tematyka nie pokrywa się z podanymi danymi może poradzić sobie gorzej, a same rankingi formalności poszczególnych słów bywają często mniej intuicyjne i zgodne z rzeczywistością niż te slm-a.
+Wynikają z tego więć niezbyt zaskakujące wnioski, że narzędzie konkretnie skierowane pod dane zastosowanie i wytrenowane na konkretnych danych radzi sobie lepiej i jest bardziej niezawodne, niż ogólny model językowy który musi na dodatek sam wywnioskować jakie właściwie jest jego zadanie i kryteria jego wykonania (gdzie model klasyfikacyjny nie musi o tym "myśleć" tylko w skutek swojego naturalnego działania daje określone dane w określonym formacie).
