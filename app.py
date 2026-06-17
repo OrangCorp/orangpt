@@ -46,10 +46,8 @@ def main() -> None:
             help="Choose the backend model used for tone evaluation."
         )
 
-        st.divider()
-        st.markdown(f"**Target Community:**\n{COMMUNITY_NAME}")
 
-    logo_path = Path("assets/logo.svg")
+    logo_path = Path("assets/logo.png")
     col_logo, col_title = st.columns([1, 8])
     
     with col_logo:
@@ -60,7 +58,6 @@ def main() -> None:
         st.title(APP_TITLE)
         st.caption(f"Check whether text is formal or informal for the {COMMUNITY_NAME} community.")
 
-    st.divider()
 
     text = st.text_area(
         "Enter text for analysis:", 
