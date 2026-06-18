@@ -2,7 +2,7 @@
 
 OranGPT is a Streamlit app for classifying text as formal or informal in English and Polish. It combines a lightweight web UI, pre-trained scikit-learn models, and LIME-based highlighting so users can see both the predicted tone and the words that influenced it most.
 
-Live demo: https://orangcorp-orangpt-app-no-gpu-branch-5vccpl.streamlit.app/
+Live demo: [https://orangcorp-orangpt.streamlit.app/](https://orangcorp-orangpt.streamlit.app/)
 
 ## Features
 
