@@ -56,7 +56,7 @@ def render_sidebar() -> tuple[str, str]:
         
         return selected_language, selected_model
 
-def run_analysis(text: str, language: str, model: str) -> None:
+def run_analysis(text: str, language: str, model: str,classifier: TextClassifier) -> None:
     """Execute the classification and store results securely in session state."""
     if not text.strip():
         st.warning("Please enter some text to classify.", icon="⚠️")
@@ -65,10 +65,10 @@ def run_analysis(text: str, language: str, model: str) -> None:
     # Use st.status for a more robust user-feedback micro-interaction
     with st.status("Analyzing tone...", expanded=True) as status:
         st.write(f"Routing text to {model}...")
-        tone, confidence, formal_prob = classify_tone(text, language, model)   
+        tone, confidence, formal_prob = classifier.classify_tone(text, language, model)   
         
         st.write("Generating visual text highlights...")
-        highlighted_html = highlight_words(text, language, model)
+        highlighted_html =highlight_words(text, language, model,classifier)
         
         status.update(label="Analysis complete!", state="complete", expanded=False)
 
@@ -112,7 +112,6 @@ def render_results() -> None:
             
             st.markdown(f"#### {status_text}")
             
-            # Theme-agnostic HTML/CSS: Removed hardcoded colors, using standard opacities
             st.markdown(
                 f"""
                 <div style="margin-top: 20px; margin-bottom: 5px; font-size: 0.85em; display: flex; justify-content: space-between; opacity: 0.7;">
@@ -129,56 +128,23 @@ def render_results() -> None:
             
             st.write("") # Spacer
             
-            # Replaced raw HTML text with clean, modern Streamlit metric modules
             metric_col1, metric_col2 = st.columns(2)
             with metric_col1:
                 st.metric(label="Formality Index", value=f"{slider_pos}%")
             with metric_col2:
                 st.metric(label="Confidence", value=f"{confidence:.1%}")
-
-    text = st.text_area(
-        "Enter text for analysis:", 
-        placeholder="Type a sentence to classify...",
-        height=150
-    )
-    classifier =  TextClassifier() 
-    if st.button("Classify Tone", type="primary", use_container_width=False):
-        if not text.strip():
-            st.warning("Please enter some text to classify.")
-        else:
-            with st.spinner(f"Analyzing tone using {selected_model}..."):
-                tone, confidence, formal_prob = classifier.classify_tone(text, selected_language, selected_model)   
-                highlighted_html = highlight_words(text, selected_language, selected_model,classifier)
-
-            st.markdown("### Analysis Results")
-            res_col1, res_col2 = st.columns([1, 2], gap="large")
-
-            with res_col1:
-                st.subheader("Overall Tone")
-                
-                if formal_prob >= 0.85:
-                    status_text = "👔 Highly Formal"
-                elif formal_prob >= 0.60:
-                    status_text = "💼 Somewhat Formal"
-                elif formal_prob >= 0.40:
-                    status_text = "⚖️ Neutral / Balanced"
-                elif formal_prob >= 0.15:
-                    status_text = "🛹 Somewhat Informal"
-                else:
-                    status_text = "🔥 Highly Informal"
-                
-                st.markdown(f"#### {status_text}")
-                
-                slider_pos = int(formal_prob * 100)
-                
-                st.markdown(
-                    f"""
-                    <div style="font-size: 1.1em; line-height: 1.7; white-space: normal; word-break: break-word;">
-                        {res["highlighted_html"]}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+        
+        # Add the highlighted text to the second column
+        with res_col2:
+            st.subheader("Text Highlights")
+            st.markdown(
+                f"""
+                <div style="font-size: 1.1em; line-height: 1.7; white-space: normal; word-break: break-word;">
+                    {res["highlighted_html"]}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
 def main() -> None:
     """Run the main Streamlit application."""
@@ -200,7 +166,7 @@ def main() -> None:
     init_session_state()
     selected_language, selected_model = render_sidebar()
     render_header()
-
+    classifier =  TextClassifier() 
     with st.container():
         text = st.text_area(
             "Enter text for analysis:", 
@@ -209,7 +175,7 @@ def main() -> None:
         )
 
         if st.button("Classify Tone", type="primary"):
-            run_analysis(text, selected_language, selected_model)
+            run_analysis(text, selected_language, selected_model,classifier)
 
     if st.session_state.analysis_complete:
         st.divider()

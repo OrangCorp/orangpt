@@ -131,15 +131,14 @@ class TextClassifier:
         try:
             clf = joblib.load(model_path)
             print(f'Model loaded from {model_path}')
-            return clf
         except FileNotFoundError:
             print(f'Error: Model file {model_path} not found')
             if selected_model == "Standard_Classifier":
-                clf = create_classifier(selected_language, selected_model, True)
+                clf = self.create_classifier(selected_language, selected_model, True)
                 return clf
             else:
                 raise NotImplementedError
-
+        return clf
 
     def classify_tone(self,text: str, selected_language: str, selected_model: str):
        
