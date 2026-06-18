@@ -51,8 +51,52 @@ Praca wyjaśnia, że formalność to unikanie niejasności poprzez tworzenie wyp
 
 Praca przenosi klasyfikację stylu do świata uczenia maszynowego. Autorzy stworzyli uniwersalny model, który rozpoznaje stopień formalności zarówno całych dokumentów, jak i pojedynczych zdań na podstawie cech gramatycznych i doboru słownictwa. Do treningu wykorzystano teksty ogólne oraz specjalistyczne (medyczne), co udowodniło, że algorytmy radzą sobie z różną tematyką. W eksperymentach przetestowano Drzewa Decyzyjne, Naiwnego Klasyfikatora Bayesa oraz Maszyny Wektorów Nośnych (SVM) – ten ostatni algorytm osiągnął najwyższą skuteczność.
 
-## **5. Opis danych**
-Do trenowania standardowego klasyfikatora a następnie testowania go oraz małego modelu językowego użyto danych z zestawu danych FAME-MT, w którym kawałki tekstu w różnych językach (z których użyte zostały polski i angielski) są pogrupowane na teksty formalne i potoczne.
+# 5. Opis danych
+
+W projekcie wykorzystano dane pochodzące z otwartego zbioru **FAME-MT** (*Formality Awareness Made Easy for Machine Translation Purposes*). Jest to wielojęzyczny korpus stworzony specjalnie na potrzeby badań nad kontrolowaniem rejestru językowego (stopnia formalności) w systemach przetwarzania języka naturalnego (NLP) i tłumaczenia maszynowego.
+
+### 5.1. Charakterystyka zbioru źródłowego
+Zbiór FAME-MT w swojej pełnej wersji składa się z 11,2 miliona par zdań przetłumaczonych pomiędzy 15 europejskimi językami źródłowymi a 8 językami docelowymi. Całość danych została udostępniona na otwartej licencji **CC BY-SA 4.0**.
+
+Główną cechą wyróżniającą ten zbiór jest podział danych docelowych na klasy formalności: **formalną** (*formal*) oraz **nieformalną** (*informal*). W przypadku języka polskiego, ze względu na jego specyfikę gramatyczną (gdzie formalność wyraża się często poprzez odpowiednią formę czasownika, a zaimki osobowe są pomijane), zbiór został poddany unikalnej procedurze:
+* Dane zostały ręcznie zweryfikowane i adnotowane przez grupę sześciu rodowitych użytkowników języka (*native speakers*).
+* Wprowadzono dodatkową klasę zdań **neutralnych** (*neutral*), czyli takich, które nie zawierają bezpośrednich zwrotów do adresata i nie wykazują cech przypisanych do stylu formalnego bądź potocznego.
+
+---
+
+### 5.2. Proces ekstrakcji danych
+
+Nasz projekt obejmował swoim zakresem wyłącznie pary językowe w **języku polskim** oraz **języku angielskim**. W celu przygotowania zbioru treningowego i walidacyjnego przeprowadzono proces ekstrakcji, który przetworzył surowe dane wejściowe.
+
+Surowy zbiór danych składał się z plików TSV umieszczonych w strukturze katalogów, gdzie nazwa każdego pliku kodowała parę językową oraz poziom formalności (np. `en-pl.formal.tsv`), natomiast próbki neutralne znajdowały się w osobnym folderze. Skrypt ekstrakcyjny zrealizował następujące kroki:
+
+1.  **Parsowanie plików:** Przejście przez strukturę katalogów w celu lokalizacji plików zawierających tekst w języku angielskim lub polskim. Na podstawie nazwy pliku i ścieżki algorytm identyfikował język oraz przypisaną klasę.
+2.  **Wczytywanie danych:** Odczyt plików TSV z obsługą błędów formatowania (wiersze uszkodzone lub niekompletne były pomijane). Zachowywano wyłącznie pary z poprawnym tekstem źródłowym i docelowym.
+3.  **Ekstrakcja tekstu:** Pobranie tekstu z kolumny źródłowej i docelowej dla wybranych języków projektu.
+4.  **Usuwanie duplikatów:** Eliminacja powtarzających się zdań przy jednoczesnym zachowaniu oryginalnej kolejności wystąpień w zbiorze.
+5.  **Kodowanie (Label Encoding):** Przypisanie wartości liczbowych do poziomów formalności:
+    * `-1` – tekst nieformalny
+    * `0` – tekst neutralny
+    * `1` – tekst formalny
+---
+
+### 5.3. Format wyjściowy
+
+Wyodrębnione dane zostały zapisane w postaci sześciu skompresowanych plików CSV (`.csv.gz`) – po jednym dla każdej kombinacji języka (angielski/polski) oraz pierwotnego poziomu formalności.
+
+| Nazwa pliku | Język | Poziom formalności | Wartość numeryczna (etykieta) |
+| :--- | :--- | :--- | :---: |
+| `en.informal.csv.gz` | Angielski | Nieformalny | -1 |
+| `en.neutral.csv.gz` | Angielski | Neutralny | 0 |
+| `en.formal.csv.gz` | Angielski | Formalny | 1 |
+| `pl.informal.csv.gz` | Polski | Nieformalny | -1 |
+| `pl.neutral.csv.gz` | Polski | Neutralny | 0 |
+| `pl.formal.csv.gz` | Polski | Formalny | 1 |
+
+Każdy z wygenerowanych plików przechowuje dane w identycznej strukturze dwukolumnowej:
+* `text` (string): Zdanie (próbka tekstowa) w danym języku.
+* `formality` (int): Wartość liczbowa oznaczająca przypisany poziom formalności.
+
 ## **6. Opis użytych metod**
 
 ### 6.1. Frontend (GUI)
