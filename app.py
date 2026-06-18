@@ -63,11 +63,12 @@ def render_sidebar() -> tuple[str, str]:
 def classify_tone(text: str, language: str, model: str):
     """Route tone classification to the selected backend model."""
     if model == "Small Language Model (SLM)":
-        scorer = FormalityScorer()
-        return scorer.classify_tone(text, language, model)
+        classifier = FormalityScorer()
+    else:
+        classifier = TextClassifier()
 
-    classifier = TextClassifier()
-    return classifier.classify_tone(text, language, model)
+    tone, confidence, formal_prob = classifier.classify_tone(text, language, model)
+    return tone, confidence, formal_prob, classifier
 
 
 def run_analysis(text: str, language: str, model: str) -> None:
@@ -79,10 +80,10 @@ def run_analysis(text: str, language: str, model: str) -> None:
     # Use st.status for a more robust user-feedback micro-interaction
     with st.status("Analyzing tone...", expanded=True) as status:
         st.write(f"Routing text to {model}...")
-        tone, confidence, formal_prob = classify_tone(text, language, model)
+        tone, confidence, formal_prob, classifier = classify_tone(text, language, model)
 
         st.write("Generating visual text highlights...")
-        highlighted_html = highlight_words(text, language, model)
+        highlighted_html = highlight_words(text, language, model, classifier)
 
         status.update(label="Analysis complete!", state="complete", expanded=False)
 
