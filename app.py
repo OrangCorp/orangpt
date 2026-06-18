@@ -4,7 +4,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import streamlit as st
 
-from ai.classifier import classify_tone
+from ai.classifier import TextClassifier
+from ai.slmclass import FormalityScorer
 from utils.text_utils import highlight_words
 
 load_dotenv()
@@ -135,26 +136,41 @@ def render_results() -> None:
             with metric_col2:
                 st.metric(label="Confidence", value=f"{confidence:.1%}")
 
-            st.caption(f"**Model:** {res['model']} | **Lang:** {res['language']}")
+    text = st.text_area(
+        "Enter text for analysis:", 
+        placeholder="Type a sentence to classify...",
+        height=150
+    )
+    classifier =  TextClassifier() 
+    if st.button("Classify Tone", type="primary", use_container_width=False):
+        if not text.strip():
+            st.warning("Please enter some text to classify.")
+        else:
+            with st.spinner(f"Analyzing tone using {selected_model}..."):
+                tone, confidence, formal_prob = classifier.classify_tone(text, selected_language, selected_model)   
+                highlighted_html = highlight_words(text, selected_language, selected_model,classifier)
 
-        with res_col2:
-            st.subheader("Highlighted Analysis")
-            
-            # Theme-agnostic legend
-            st.markdown(
-                """
-                <div style="margin-bottom: 15px; font-size: 0.9em; opacity: 0.8;">
-                    <b>Legend (Opacity intensity shows weight):</b> 
-                    <span style="background-color: rgba(0, 180, 216, 0.8); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold;">Formal</span>
-                    <span style="background-color: rgba(239, 35, 60, 0.8); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-left: 10px;">Informal</span>
-                    <span style="margin-left: 10px;">Plain Text = Neutral</span>
-                </div>
-                """, 
-                unsafe_allow_html=True
-            )
-            
-            # Native container rendering dynamically handles light/dark mode backgrounds
-            with st.container(border=True):
+            st.markdown("### Analysis Results")
+            res_col1, res_col2 = st.columns([1, 2], gap="large")
+
+            with res_col1:
+                st.subheader("Overall Tone")
+                
+                if formal_prob >= 0.85:
+                    status_text = "👔 Highly Formal"
+                elif formal_prob >= 0.60:
+                    status_text = "💼 Somewhat Formal"
+                elif formal_prob >= 0.40:
+                    status_text = "⚖️ Neutral / Balanced"
+                elif formal_prob >= 0.15:
+                    status_text = "🛹 Somewhat Informal"
+                else:
+                    status_text = "🔥 Highly Informal"
+                
+                st.markdown(f"#### {status_text}")
+                
+                slider_pos = int(formal_prob * 100)
+                
                 st.markdown(
                     f"""
                     <div style="font-size: 1.1em; line-height: 1.7; white-space: normal; word-break: break-word;">

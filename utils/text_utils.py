@@ -1,6 +1,6 @@
 """Text helper utilities."""
 import re
-from ai.classifier import get_highlighted_words
+from ai.classifier import TextClassifier
 
 def normalize_text(text: str) -> str:
     """Normalize user input for consistent rule checks."""
@@ -10,13 +10,13 @@ def contains_any(text: str, keywords: tuple[str, ...]) -> bool:
     """Return True if any keyword is present in text."""
     return any(keyword in text for keyword in keywords)
 
-def highlight_words(text: str, language: str, model_type: str) -> str:
+def highlight_words(text: str, language: str, model_type: str, classifier: TextClassifier) -> str:
     """
     Analyzes text and returns an HTML string with formal and informal words 
     highlighted using a precise gradient based on feature importance weights.
     Neutral words are left completely unstyled.
     """
-    words_list = get_highlighted_words(text, language, model_type)
+    words_list = classifier. get_highlighted_words(text, language, model_type)
     if not words_list:
         return text.replace("\n", "<br>")
 
@@ -24,10 +24,11 @@ def highlight_words(text: str, language: str, model_type: str) -> str:
     max_score = max(abs(float(val)) for _, val in words_list) if words_list else 1.0
     if max_score == 0:
         max_score = 1.0
-
+    print("max score=" + str(max_score))
+    print("words list = " + str(words_list))
     # Build local scoring lookup dictionary
     word_scores = {str(word).lower(): float(val) for word, val in words_list}
-
+    print("word scores: "+ str(word_scores))
     # Split using capturing group to preserve all spacing, punctuation, and newlines exactly
     tokens = re.split(r'(\s+|\b\w+\b)', text)
     highlighted_text = []

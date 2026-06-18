@@ -1,5 +1,5 @@
 # **Ocena formalności tekstu**
-*Miłosz Malinowski, Michał Korzeniewski, Piotr Misiejuk*
+*Miłosz Malinowski S223391, Michał Korzeniewski S223399, Piotr Misiejuk S223302*
 ## Spis treści
 1. [Streszczenie](#1-streszczenie)
 2. [Wprowadzenie](#2-wprowadzenie)
@@ -11,6 +11,9 @@
 8. [Wyniki](#8-wyniki)
 9. [Wnioski](#9-wnioski)
 ## **1. Streszczenie**
+
+W ramach projektu przeprowadzono analizę porównawczą dwóch odmiennych metod służących do automatycznej oceny stopnia formalności tekstu. Pierwszym rozwiązaniem był tradycyjny klasyfikator statystyczny (oparty na algorytmach uczenia maszynowego), który został wytrenowany na specjalnie przygotowanych danych tekstowych. Drugim podejściem było wykorzystanie małego modelu językowego (SLM) Qwen2.5-1.5B-Instruct, który realizował zadanie na podstawie odpowiednio przygotowanych instrukcji i przykładów (tzw. promptów). Proces uczenia tradycyjnego klasyfikatora oraz testy skuteczności obu rozwiązań zostały przeprowadzone przy użyciu dwujęzycznego zbioru danych (korpusu) o nazwie **Fame MT**. Wyniki eksperymentu pozwoliły na bezpośrednie porównanie stabilności tradycyjnych algorytmów z możliwościami modeli językowych w zadaniu analizy stylu tekstu.
+
 ## **2. Wprowadzenie**
 Skuteczna komunikacja wymaga od nas ciągłego dostosowywania rejestru językowego do sytuacji społecznej. Styl formalny (urzędowy, biznesowy czy akademicki) cechuje się dążeniem do całkowitej niezależności od kontekstu. Jest konstruowany tak, aby był precyzyjny i zrozumiały dla każdego odbiorcy, co w strukturze gramatycznej objawia się dominacją rzeczowników oraz przymiotników. Z kolei styl nieformalny (potoczny) bazuje na współdzielonej wiedzy rozmówców, skrótach myślowych, zaimkach i czasownikach.
 
@@ -49,6 +52,7 @@ Praca wyjaśnia, że formalność to unikanie niejasności poprzez tworzenie wyp
 Praca przenosi klasyfikację stylu do świata uczenia maszynowego. Autorzy stworzyli uniwersalny model, który rozpoznaje stopień formalności zarówno całych dokumentów, jak i pojedynczych zdań na podstawie cech gramatycznych i doboru słownictwa. Do treningu wykorzystano teksty ogólne oraz specjalistyczne (medyczne), co udowodniło, że algorytmy radzą sobie z różną tematyką. W eksperymentach przetestowano Drzewa Decyzyjne, Naiwnego Klasyfikatora Bayesa oraz Maszyny Wektorów Nośnych (SVM) – ten ostatni algorytm osiągnął najwyższą skuteczność.
 
 ## **5. Opis danych**
+Do trenowania standardowego klasyfikatora a następnie testowania go oraz małego modelu językowego użyto danych z zestawu danych FAME-MT, w którym kawałki tekstu w różnych językach (z których użyte zostały polski i angielski) są pogrupowane na teksty formalne i potoczne.
 ## **6. Opis użytych metod**
 
 ### 6.1. Frontend (GUI)
@@ -101,7 +105,25 @@ Do interpretacji wyników wykorzystano **LIME** (Local Interpretable Model-agnos
 - Identyfikacja słów mających największy wpływ na decyzję klasyfikatora
 - Określenie wagi każdego słowa (dodatnia dla formalnych, ujemna dla nieformalnych)
 
-### Mały Model Językowy (SLM)
+### 6.3. Mały Model Językowy (SLM)
+
+**Architektura modelu:**
+- Wykorzystanie modelu **Qwen/Qwen2.5-1.5B-Instruct** – lekkiego modelu językowego z rodziny Qwen
+- Model typu Causal LM (generatywny) z 1.5 miliardami parametrów
+- Działanie w trybie instrukcji (Instruct) z dostosowanym system promptem
+
+**Metoda klasyfikacji:**
+- Klasyfikacja poprzez **promptowanie** modelu o ocenę formalności w skali 0.0–1.0
+- Wykorzystanie techniki **few-shot learning** z przykładami w promptcie:
+  - Przykład nieformalny: "hey wassup bro how u doin" → 0.1
+  - Przykład formalny: "I would like to formally request..." → 0.95
+  - Przykład neutralny: "The meeting is scheduled..." → 0.5
+- Model zwraca JSON z oceną formalności oraz listą ważnych słów
+
+**Ekstrakcja cech:**
+- Oprócz głównej oceny, model identyfikuje słowa kluczowe wpływające na decyzję
+- Każde słowo otrzymuje indywidualną ocenę formalności (0.0–1.0)
+- Oceny słów są normalizowane do zakresu [-1.0, 1.0] (ujemne → nieformalne, dodatnie → formalne)
 
 ## **7. Opis wdrożenia metod/modelu**
 ### 7.1. Frontend (GUI)
@@ -178,7 +200,182 @@ Do interpretacji wyników wykorzystano **LIME** (Local Interpretable Model-agnos
 - Główny plik: `{model}_{język}.pkl` (zawiera cały potok Pipeline)
 - Plik metadanych: `{model}_{język}_info.txt` (parametry, dokładność, raport)
 
-### 7.3 Mały Model Językowy (SLM)
+### 7.3. Mały Model Językowy (SLM)
+
+**Klasa `FormalityScorer` (`slmclass.py`):**
+
+1. **Inicjalizacja i ładowanie modelu:**
+   - Konfiguracja urządzenia (CUDA/CPU) z automatycznym wykryciem
+   - Ładowanie tokenizera z ustawieniem tokena paddingowego
+   - Ładowanie modelu z `device_map="auto"` i precyzją `float16` dla wydajności
+   - Ustawienie zmiennych środowiskowych dla Hugging Face Hub
+
+2. **Metoda `score_formality`:**
+   - Budowanie struktury wiadomości z system promptem i przykładami few-shot
+   - Generowanie promptu przez `apply_chat_template`
+   - Generowanie odpowiedzi z parametrami: `max_new_tokens=140`, `temperature=0.3`
+   - Parsowanie odpowiedzi JSON i ekstrakcja oceny oraz ważnych słów
+   - Mechanizm fallback w przypadku błędów parsowania
+
+3. **Metoda `prompt`:**
+   - Pętla próbująca do 5 razy uzyskać poprawną odpowiedź JSON
+   - Normalizacja ocen słów: `(word_score - 0.5) * 2` → zakres [-1.0, 1.0]
+   - Fallback do domyślnej odpowiedzi w przypadku ciągłych błędów
+
+4. **Kompatybilność ze Scikit-learn:**
+   - Implementacja metod `predict()` i `predict_proba()` dla zgodności z interfejsem
+   - `predict()`: zwraca 1 (formalny) jeśli formality > 0.5, inaczej -1
+   - `predict_proba()`: zwraca `[1-formality, formality]`
+
+5. **Serializacja (pickle):**
+   - Nadpisanie `__getstate__` do wykluczenia ciężkich obiektów modelu
+   - Model i tokenizer ustawiane na `None` przy zapisie
+   - Nadpisanie `__setstate__` do przywrócenia stanu z oznaczeniem "niezaładowany"
+   - Model ładowany automatycznie przy pierwszym użyciu (lazy loading)
+
+**Integracja z systemem klasyfikacji (`classifier.py`):**
+
+1. **Klasa `TextClassifier`:**
+   - Inicjalizacja z dwoma instancjami `FormalityScorer` (dla polskiego i angielskiego)
+   - Modele ładowane są z zapisanych plików pickle
+
+2. **Metoda `classify_tone`:**
+   - Rozróżnienie ścieżki dla SLM i klasyfikatora standardowego
+   - Wywołanie `clf.prompt([text])` do uzyskania oceny
+   - Użycie `predict()` i `predict_proba()` do uzyskania zgodnego formatu wyjścia
+
+3. **Metoda `get_highlighted_words`:**
+   - Dla SLM: zwraca `loaded_data['important_words']` z ostatniej predykcji
+   - Lista słów z ocenami w zakresie [-1.0, 1.0] gotowa do wizualizacji
+
+**Format zapisu modelu:**
+- Plik pickle: `Small_Language_Model_(SLM)_{język}.pkl`
+- Zapis zawiera konfigurację (nazwa modelu, urządzenie) bez wag modelu
+- Wagi ładowane przy pierwszym wywołaniu z Hugging Face Hub
 
 ## **8. Wyniki**
+
+W poniższej sekcji przedstawiono kompletne wyniki eksperymentów klasyfikacji stopnia formalności tekstów dla obu rozważanych podejść: Klasyfikatora Standardowego (Ensemble oparty na VotingClassifier) oraz Małego Modelu Językowego (SLM Qwen2.5-1.5B-Instruct), z rozbiciem na eksperymenty w języku angielskim oraz polskim.
+
+---
+
+### 8.1. Klasyfikator Standardowy (Ensemble Model)
+
+Model klasyczny wykorzystuje kompozycję (Soft Voting) regresji logistycznej, SGD oraz naiwnego klasyfikatora Bayesa, zasilaną wektoryzacją TF-IDF.
+
+#### **Język Angielski (English)**
+
+* **Metadane ewaluacji:**
+  * **Liczba próbek treningowych (Training samples):** 140 000
+  * **Liczba wyekstrahowanych cech (Features):** 836 710
+  * **Ziarno losowości (Random State):** 2217827989
+  * **Ścieżka zapisu artefaktu:** `ai/models/Standard_Classifier_English.pkl`
+  * **Ogólna dokładność modelu (Accuracy):** 0.7893 (78.93%)
+
+* **Optymalna konfiguracja hiperparametrów (GridSearchCV):**
+  * `classifier__Logistic Regression__C`: 10.0
+  * `classifier__Multinomial Naive Bayes__alpha`: 1.0
+  * `classifier__Stochastic Gradient Descent__alpha`: 1e-05
+  * `vectorizer__max_df`: 0.9
+  * `vectorizer__ngram_range`: (1, 2)
+
+* **Szczegółowy raport klasyfikacji (Classification Report):**
+
+| Etykieta klasy | Opis | Precyzja (Precision) | Pełność (Recall) | F1-Score | Wsparcie (Support) |
+|:---:|:---|:---:|:---:|:---:|:---:|
+| **-1** | Styl Nieformalny | 0.81 | 0.76 | 0.78 | 30 000 |
+| **1** | Styl Formalny | 0.77 | 0.82 | 0.80 | 30 000 |
+| **Suma / Średnia** | **Dokładność (Accuracy)** | | | **0.79** | **60 000** |
+| | Macro Avg | 0.79 | 0.79 | 0.79 | 60 000 |
+| | Weighted Avg | 0.79 | 0.79 | 0.79 | 60 000 |
+
+---
+
+#### **Język Polski (Polish)**
+
+* **Metadane ewaluacji:**
+  * **Liczba próbek treningowych (Training samples):** 140 000
+  * **Liczba wyekstrahowanych cech (Features):** 131 178
+  * **Ziarno losowości (Random State):** 2225172574
+  * **Ścieżka zapisu artefaktu:** `ai/models/Standard_Classifier_Polish.pkl`
+  * **Ogólna dokładność modelu (Accuracy):** 0.7930 (79.30%)
+
+* **Optymalna konfiguracja hiperparametrów (GridSearchCV):**
+  * `classifier__Logistic Regression__C`: 1.0
+  * `classifier__Multinomial Naive Bayes__alpha`: 1.0
+  * `classifier__Stochastic Gradient Descent__alpha`: 1e-05
+  * `vectorizer__max_df`: 0.8
+  * `vectorizer__ngram_range`: (1, 1)
+
+* **Szczegółowy raport klasyfikacji (Classification Report):**
+
+| Etykieta klasy | Opis | Precyzja (Precision) | Pełność (Recall) | F1-Score | Wsparcie (Support) |
+|:---:|:---|:---:|:---:|:---:|:---:|
+| **-1** | Styl Nieformalny | 0.78 | 0.81 | 0.80 | 30 000 |
+| **1** | Styl Formalny | 0.80 | 0.77 | 0.79 | 30 000 |
+| **Suma / Średnia** | **Dokładność (Accuracy)** | | | **0.79** | **60 000** |
+| | Macro Avg | 0.79 | 0.79 | 0.79 | 60 000 |
+| | Weighted Avg | 0.79 | 0.79 | 0.79 | 60 000 |
+
+---
+
+### 8.2. Mały Model Językowy (SLM - Qwen2.5-1.5B-Instruct)
+
+Ewaluacja modelu generatywnego została przeprowadzona na zbalansowanej próbie testowej z wykorzystaniem paradygmatu few-shot prompting oraz deterministycznego próbkowania (`temperature=0.3`).
+
+#### **Język Angielski (English)**
+
+* **Metadane ewaluacji:**
+  * **Rozmiar próby testowej:** 100 dokumentów
+  * **Ogólna dokładność modelu (Accuracy):** 0.6200 (62.00%)
+
+* **Szczegółowy raport klasyfikacji (Classification Report):**
+
+| Etykieta klasy | Opis | Precyzja (Precision) | Pełność (Recall) | F1-Score | Wsparcie (Support) |
+|:---:|:---|:---:|:---:|:---:|:---:|
+| **-1** | Styl Nieformalny | 0.54 | 0.89 | 0.67 | 44 |
+| **1** | Styl Formalny | 0.82 | 0.41 | 0.55 | 56 |
+| **Suma / Średnia** | **Dokładność (Accuracy)** | | | **0.62** | **100** |
+| | Macro Avg | 0.68 | 0.65 | 0.61 | 100 |
+| | Weighted Avg | 0.70 | 0.62 | 0.60 | 100 |
+
+---
+
+#### **Język Polski (Polish)**
+
+* **Metadane ewaluacji:**
+  * **Rozmiar próby testowej:** 100 dokumentów
+  * **Ogólna dokładność modelu (Accuracy):** 0.5000 (50.00%)
+
+* **Szczegółowy raport klasyfikacji (Classification Report):**
+
+| Etykieta klasy | Opis | Precyzja (Precision) | Pełność (Recall) | F1-Score | Wsparcie (Support) |
+|:---:|:---|:---:|:---:|:---:|:---:|
+| **-1** | Styl Nieformalny | 0.51 | 0.85 | 0.64 | 52 |
+| **1** | Styl Formalny | 0.43 | 0.12 | 0.19 | 48 |
+| **Suma / Średnia** | **Dokładność (Accuracy)** | | | **0.50** | **100** |
+| | Macro Avg | 0.47 | 0.49 | 0.42 | 100 |
+| | Weighted Avg | 0.47 | 0.50 | 0.42 | 100 |
 ## **9. Wnioski**
+Przeprowadzone badania oraz ocena wdrożonych rozwiązań dostarczają ważnych wniosków na temat automatycznego rozpoznawania stylu (formalności) tekstu. Analiza wyników wykazała wyraźną przewagę klasycznych metod nad modelami generatywnymi. Tradycyjny klasyfikator statystyczny (oparty na połączeniu kilku algorytmów) osiągnął stabilną dokładność na poziomie blisko 79% dla obu języków. Wynik ten jest znacznie wyższy niż w przypadku małego modelu językowego (SLM) Qwen2.5-1.5B-Instruct, którego skuteczność spadła do 62% dla języka angielskiego i zaledwie 50% dla języka polskiego. 
+
+### **Wniosek 1 (Przewaga podejścia tradycyjnego):** 
+Klasyczne algorytmy uczenia maszynowego gwarantują wyższą precyzję i przewidywalność. Przetwarzają one cechy tekstu bezpośrednio na wynik klasyfikacji, dzięki czemu nie wymagają interpretowania instrukcji ukrytych w tzw. promptach, co eliminuje ryzyko błędnego zrozumienia zadania.
+
+Zastosowanie małego modelu językowego (SLM) w gotowej aplikacji ujawniło ograniczenia związane z jego architekturą. Pomimo precyzyjnego ustawienia parametrów generowania tekstu i podania modeli przykładowych odpowiedzi, model o rozmiarze 1.5 miliarda parametrów często popełniał błędy logiczne i językowe. Zjawisko to objawiało się samowolną zmianą analizowanych słów (np. zamianą wielkich liter na małe), co naruszało spójność danych. Dodatkowo, próby sztywnego ograniczenia długości odpowiedzi sprawiały, że model wpadał w pętlę i bez końca powtarzał te same wyrazy, co całkowicie psuło strukturę wynikowego pliku JSON.
+
+### **Wniosek 2 (Ograniczenia mniejszych modeli językowych):** 
+Modele generatywne o małej liczbie parametrów mają tendencję do zniekształcania faktów oraz błędów w składni tekstu. Nie dają one gwarancji, że odpowiedź zostanie zwrócona w wymaganym formacie (np. JSON), jeśli nałożone zostaną na nie zbyt surowe limity długości tekstu.
+
+Wymiar językowy projektu pokazał, jak duże znaczenie mają różnice pomiędzy strukturą poszczególnych języków. Metoda wektorowania tekstu (TF-IDF) wyodrębniła dla języka angielskiego ponad sześciokrotnie więcej cech niż dla języka polskiego. Wynika to z faktu, że język polski posiada bogatą odmianę słów przez przypadki i osoby. Bez zastosowania zaawansowanego sprowadzania wyrazów do ich form podstawowych (lematyzacji), algorytm traktował różne formy tego samego słowa jako zupełnie nowe cechy. Z drugiej strony, w obszarze wyjaśniania decyzji sztucznej inteligencji (XAI) zauważono ciekawą zależność. Choć matematyczne analizy dla modelu klasycznego były bardziej precyzyjne, to uzasadnienia generowane przez model językowy (gdy były poprawne) okazały się o wiele bardziej intuicyjne i zrozumiałe dla człowieka.
+
+### **Wniosek 3 (Wpływ specyfiki języka i interpretacja wyników):** 
+Brak sprowadzania słów do formy podstawowej w językach o bogatej odmianie (takich jak polski) mocno ogranicza możliwości modeli statystycznych. Jednak w przypadku analizy uzasadnień, poprawne odpowiedzi modeli językowych oferują głębsze i bardziej naturalne dla człowieka wyjaśnienia niż surowe wyliczenia matematyczne.
+
+W świetle uzyskanych danych, najlepsza architektura systemu do oceny formalności tekstu powinna łączyć oba podejścia. Do zadań wymagających absolutnej stabilności i szybkości, takich jak automatyczna moderacja treści w czasie rzeczywistym, należy stosować tradycyjne klasyfikatory. Są one szybkie, nie wymagają drogich kart graficznych (GPU) i zawsze zwracają dane w tym samym formacie. Modele generatywne (SLM/LLM) sprawdzają się natomiast znacznie lepiej jako narzędzia asystenckie, które podpowiadają coś użytkownikowi w interfejsie graficznym.
+
+### **Wniosek 4 (Rekomendacja architektoniczna):** 
+Systemy produkcyjne najlepiej projektować w sposób hybrydowy. Główną warstwą decyzyjną powinien być szybki i stabilny klasyfikator statystyczny, natomiast model językowy warto wykorzystać jako moduł wspierający, odpowiedzialny za tworzenie opisowych wyjaśnień i wskazówek dla użytkownika końcowego.
+
+### Wdrożenie i dostępność systemu
+W ramach prac projektowych pomyślnie zrealizowano pełny proces wdrożeniowy (deployment). Gotowy system został zaimplementowany jako interaktywna aplikacja webowa i jest hostowany na platformie **Streamlit Community Cloud**. Działająca aplikacja, umożliwiająca testowanie modeli w czasie rzeczywistym, jest dostępna publicznie pod adresem: [https://orangcorp-orangpt.streamlit.app/](https://orangcorp-orangpt.streamlit.app/).
