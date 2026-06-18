@@ -78,9 +78,9 @@ threadpoolctl==3.6.0
 tifffile==2026.6.1
 tokenizers==0.22.2
 toml==0.10.2
-torch==2.7.1
-torchaudio==2.7.1
-torchvision==0.22.1
+torch==2.12.1
+torchaudio==2.12.1
+torchvision==0.27.1
 tqdm==4.68.2
 transformers==5.12.0
 triton==3.3.1
