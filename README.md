@@ -108,7 +108,7 @@ python -m unittest discover tests
 
 The project is deployed on Streamlit at:
 
-https://orangcorp-orangpt-app-no-gpu-branch-5vccpl.streamlit.app/
+https://orangcorp-orangpt.streamlit.app/
 
 ## Project Notes
 
